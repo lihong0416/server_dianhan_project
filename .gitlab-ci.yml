@@ -1,0 +1,83 @@
+stages:
+  # - test
+  - build
+  - run
+
+variables:
+  DOCKER_IMAGE: $HARBOR_REGISTRY/alg/$CI_PROJECT_NAME
+  DOCKER_TAG: $CI_COMMIT_SHORT_SHA
+  HARBOR_HOST_IP: "10.6.0.181"
+
+# Test stage - Run linting and tests
+# test:
+#   stage: test
+#   image: python:3.11-slim
+#   tags:
+#     - algorithm-group
+#   before_script:
+#     # Use Tsinghua mirror for apt packages
+#     - pip install torch torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/cu118
+#     - sed -i 's/deb.debian.org/mirrors.tuna.tsinghua.edu.cn/g' /etc/apt/sources.list.d/debian.sources
+#     - apt-get update && apt-get install -y make
+#     - pip install -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
+#   script:
+#     # 替代 make lint：只做语法检查（无需额外工具）
+#     - python -m py_compile server.py
+#     - find app -name "*.py" -exec python -m py_compile {} \;
+    
+#     # 替代 make test：暂时只检查能否导入（最简测试）
+#     - python -c "import server; print('✅ Server imported')"
+#     - python -c "from app.predictor.weld_predictor import UIPRegreator; print('✅ Model imported')"
+#   only:
+#     - zl-deploy
+
+# Build stage - Build and push Docker image to Harbor
+build:
+  timeout: 2h
+  stage: build
+
+  image: docker:latest
+
+  tags:
+    - algorithm-group
+
+  only:
+    - main
+  # services:
+  #   - docker:dind
+  script:
+    - docker login -u admin -p Harbor12345 https://myharbor.com:31535
+    - docker build -t myharbor.com:31535/alg/aeq_qingdao:latest .
+    - docker push myharbor.com:31535/alg/aeq_qingdao:latest
+  after_script:
+    # Clean up local mirroring to save disk space
+    - docker rmi myharbor.com:31535/alg/aeq_qingdao:latest || true
+
+    
+run:
+  image: docker:latest
+  stage: run
+  tags:
+    - algorithm-group
+  only:
+    - main
+  #  services:
+  #    - docker:dind
+  script:
+    # 1. 装 sshpass（Alpine 里默认没有）
+    - apk add --no-cache sshpass openssh-client
+    # 2. 把 125 加入 known_hosts，避免交互 yes/no
+    - mkdir -p ~/.ssh
+    - ssh-keyscan -H 10.6.0.125 >> ~/.ssh/known_hosts
+    # 3. 用密码登录 125，完成拉取-停旧-启新-删旧镜像
+    - >
+      SSHPASS="$SSH_PASSWORD" sshpass -e ssh -o StrictHostKeyChecking=no root@10.6.0.125 "
+        set -e
+        docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+        OLD_C=\$(docker ps -aq -f name=qingdao_pro)
+        [ -n \"\$OLD_C\" ] && OLD_I=\$(docker inspect -f '{{.Image}}' \$OLD_C) || OLD_I=''
+        [ -n \"\$OLD_C\" ] && docker rm -f \$OLD_C || true
+        docker pull myharbor.com:31535/alg/aeq_qingdao:latest
+        docker run -d --name qingdao_pro  myharbor.com:31535/alg/aeq_qingdao:latest
+        [ -n \"\$OLD_I\" ] && docker rmi \$OLD_I || true
+      "

@@ -1,0 +1,63 @@
+clickhouse:
+  host: "10.6.0.126"
+  port: 9000
+  user: "default"
+  password: "ballsnow"
+  database: "yiqi"
+  connect_timeout: 10
+
+tables:
+  # 关键：数据来源表改成 weld_detail_pz（你截图里那个）
+  # 你 clickhouse_client 连接的 database 已经是 yiqi，所以这里写 weld_detail_pz 或 yiqi.weld_detail_pz 都行
+  source_table: "weld_detail_pz"
+
+  # 写回 MySQL 的表名保持你原来的
+  result_table: "weld_confirm_alg"
+
+mysql:
+  host: "115.120.217.56"
+  port: 3306
+  user: "root"
+  password: "ballsnow"
+  database: "weld_yiqi"
+
+batch_size: 100
+
+# 你的原来是 polling_interval: 50
+loop_interval_seconds: 50
+
+# ===================== 新模型部署必须新增/修改的关键项 =====================
+
+# 关键：新模型导出目录（里面有 global_model.pth，可选 inference_config.json）
+# 这个路径请你按 classification_and_regression.py 里你实际保存的 export_dir 来填
+model_export_dir: "/mlm/Qingdao/V1/model_export"
+
+# 可选：如果你用过 calibrated_threshold_0.99.json，就把路径写上
+# 没有也没关系，会走 classification_threshold_default
+calibrated_threshold_path: "/mlm/Qingdao/V1/calibrated_threshold_0.99.json"
+
+# 可选：没有 calibrated json 时，用这个阈值
+classification_threshold_default: 0.5
+
+# 可选：想更严格（减少误报NOK），可以设置 1~10 之间，比如 5
+threshold_scale: 1.0
+
+# 关键：新模型曲线长度（你训练用的是 1000）
+target_len: 1000
+
+# 关键：曲线归一化系数（你第二/第三个脚本里就是这组）
+norm_coeffs:
+  R: 1
+  I: 5
+  U: 1
+  P: 2
+
+# 本地保存目录：保持你原来的
+save_dir: "V1/server_V1_qingdao"
+
+# 规则模型：保持你原来的
+stat_dict_path: "/mlm/Qingdao/V1/stat_dict.json"
+problem_class: "binary"
+
+service:
+  port: 8000

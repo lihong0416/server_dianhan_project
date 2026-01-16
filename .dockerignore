@@ -1,0 +1,57 @@
+# Git / IDE
+.git
+.gitignore
+.vscode/
+.idea/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# logs / outputs
+*.log
+logs/
+runs/
+checkpoints/
+roc_plots/
+model_export/
+**/model_export/
+*.png
+*.jpg
+*.jpeg
+
+# ===== 大目录 =====
+feather_data/
+feather_data_eval/
+V1/
+V2/
+V3/
+
+# 大文件数据
+*.feather
+*.parquet
+*.npz
+*.npy
+
+# 模型权重
+*.pth
+*.pt
+*.ckpt
+*.onnx
+
+# 训练/无关脚本
+V1_lh_train.py
+V2_lh_train.py
+V3_test_lh_train.py
+classification_and_regression.py
+
+# 其它可能的大/无关文件
+*.xlsx
+*.xls
+*.csv
+
+# 密钥类
+# config.yaml
+.env
