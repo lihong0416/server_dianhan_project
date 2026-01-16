@@ -1,0 +1,16 @@
+pandas
+numpy
+jsonschema
+fastapi
+uvicorn
+PyYAML
+clickhouse-driver
+pymysql
+requests
+xmltodict
+scipy
+scikit-learn
+dill
+imbalanced-learn
+openpyxl
+matplotlib
